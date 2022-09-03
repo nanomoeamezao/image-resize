@@ -2,17 +2,22 @@ module test/test
 
 go 1.19
 
-require github.com/SKF/go-image-resizer v1.1.0
+require (
+	github.com/SKF/go-image-resizer v1.1.0
+	github.com/stretchr/testify v1.7.0
+)
 
 require (
 	github.com/DataDog/datadog-go v4.4.0+incompatible // indirect
 	github.com/Microsoft/go-winio v0.4.17 // indirect
 	github.com/SKF/go-enlight-middleware v0.4.0 // indirect
 	github.com/SKF/go-utility/v2 v2.26.0 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/uuid v1.1.2 // indirect
 	github.com/philhofer/fwd v1.0.0 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rwcarlsen/goexif v0.0.0-20190401172101-9e8deecbddbd // indirect
 	github.com/tinylib/msgp v1.1.2 // indirect
 	go.opencensus.io v0.23.0 // indirect
