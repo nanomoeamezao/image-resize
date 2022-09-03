@@ -47,11 +47,14 @@ func handleResize(w http.ResponseWriter, r *http.Request) {
 	log.Println("got request")
 
 	urlVal, height, width := getQueryParams(r.URL)
+	if urlVal == "" || height == "" || width == "" {
+		handleError("missing required params", w, http.StatusBadRequest)
+		return
+	}
 	Img := ImageParams{}
 	url, heightInt, widthInt, err := parseParams(urlVal, height, width)
 	if err != nil {
-		log.Println("could not get image: ", err.Error())
-		sendErrResponse(err.Error(), http.StatusBadRequest, w)
+		handleError("could not parse params: "+err.Error(), w, http.StatusBadRequest)
 		return
 	}
 	Img.Width = widthInt
@@ -60,14 +63,12 @@ func handleResize(w http.ResponseWriter, r *http.Request) {
 
 	targetImg, err := downloadImage(Img.URL)
 	if err != nil {
-		log.Println("could not get image: ", err.Error())
-		sendErrResponse(err.Error(), http.StatusInternalServerError, w)
+		handleError("could not get image: "+err.Error(), w, http.StatusInternalServerError)
 		return
 	}
 	resImg, format, err := resizeImage(targetImg, Img.Width, Img.Height)
 	if err != nil {
-		log.Println("could not resize image: ", err.Error())
-		sendErrResponse(err.Error(), http.StatusInternalServerError, w)
+		handleError("could not resize image: "+err.Error(), w, http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "image/"+format)
@@ -81,18 +82,15 @@ func handleResize(w http.ResponseWriter, r *http.Request) {
 func parseParams(urlVal string, heightStr string, widthStr string) (urlParsed string, height int, width int, err error) {
 	decUrl, err := url.PathUnescape(urlVal)
 	if err != nil {
-		log.Println("could not parse url: ", err.Error())
-		return "", 0, 0, err
+		return "", 0, 0, errors.New("could not parse url " + err.Error())
 	}
 	heightInt, err := strconv.Atoi(heightStr)
 	if err != nil {
-		log.Println("could not parse height: ", err.Error())
-		return "", 0, 0, err
+		return "", 0, 0, errors.New("could not parse height " + err.Error())
 	}
 	widthInt, err := strconv.Atoi(widthStr)
 	if err != nil {
-		log.Println("could not parse width: ", err.Error())
-		return "", 0, 0, err
+		return "", 0, 0, errors.New("could not parse width " + err.Error())
 	}
 	return decUrl, heightInt, widthInt, nil
 }
@@ -112,8 +110,7 @@ func resizeImage(targetImg []byte, width, height int) ([]byte, string, error) {
 	case "png":
 		err = png.Encode(buf, resizedImage)
 	default:
-		fmt.Println(format)
-		return nil, "", errors.New("bad image type")
+		return nil, "", errors.New("bad image type: " + format)
 	}
 	return buf.Bytes(), format, nil
 }
@@ -122,8 +119,7 @@ func downloadImage(url string) ([]byte, error) {
 	log.Println("downloading image")
 	res, err := http.Get(url)
 	if err != nil {
-		log.Println("could not get image: ", err.Error())
-		return nil, err
+		return nil, errors.New("could not get image: " + err.Error())
 	}
 	var targetImg bytes.Buffer
 	io.Copy(&targetImg, res.Body)
@@ -133,6 +129,11 @@ func downloadImage(url string) ([]byte, error) {
 
 func prepareErrorForResponse(errStr string) string {
 	return fmt.Sprintf(`{"error": "%s"}`, errStr)
+}
+
+func handleError(errStr string, w http.ResponseWriter, status int) {
+	log.Println(errStr)
+	sendErrResponse(errStr, status, w)
 }
 
 func sendErrResponse(errStr string, status int, w http.ResponseWriter) {
