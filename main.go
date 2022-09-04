@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync"
 
 	"github.com/disintegration/imaging"
 )
@@ -21,19 +22,50 @@ import (
 func main() {
 	log.Println("listening")
 	limit := readFlags()
+	log.Println("limit: ", limit)
 	http.HandleFunc("/resize", limitMaxRequests(handleResize, limit))
-	http.ListenAndServe("localhost:3300", nil)
+	http.ListenAndServe("0.0.0.0:3300", nil)
+}
+
+type limiter struct {
+	current int
+	max     int
+	mu      *sync.Mutex
+}
+
+func NewLimit(limit int) limiter {
+	mu := new(sync.Mutex)
+	return limiter{
+		current: 0,
+		max:     limit,
+		mu:      mu,
+	}
+}
+
+func (l *limiter) Inc() {
+	l.mu.Lock()
+	l.current++
+	l.mu.Unlock()
+}
+
+func (l *limiter) Dec() {
+	l.mu.Lock()
+	l.current--
+	l.mu.Unlock()
 }
 
 func limitMaxRequests(f http.HandlerFunc, limit int) http.HandlerFunc {
-	sem := make(chan struct{}, limit)
+	lim := NewLimit(limit)
 	return func(w http.ResponseWriter, r *http.Request) {
-		if len(sem) == limit {
-			sendErrResponse("too many requests", http.StatusTooManyRequests, w)
+		fmt.Println(lim.current, " ", lim.max)
+
+		if lim.current >= lim.max {
+			handleError("too many requests", w, http.StatusTooManyRequests)
+			return
 		}
-		sem <- struct{}{}
-		defer func() { <-sem }()
+		lim.Inc()
 		f(w, r)
+		lim.Dec()
 	}
 }
 
@@ -153,7 +185,7 @@ func getQueryParams(url *url.URL) (urlVal string, height string, width string) {
 
 func readFlags() int {
 	// Read flags
-	flagLimit := flag.Int("limit", 1, "amount of parallel requests allowed")
+	flagLimit := flag.Int("limit", 2, "amount of parallel requests allowed")
 	flag.Parse()
 	return *flagLimit
 }
