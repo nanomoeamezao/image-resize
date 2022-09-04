@@ -4,7 +4,7 @@
 ```
 make build
 docker build -t res .
-docker run -p 3300:3000 -d --name res-con res 
+docker run -p 3300:3300 -d --name res-con res 
 ```
 
 ## Ручка:
