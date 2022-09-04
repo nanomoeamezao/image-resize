@@ -15,7 +15,10 @@ func main() {
 	limit := flags.ReadFlags()
 	log.Println("limit: ", limit)
 	http.HandleFunc("/resize", request.LimitMaxRequests(handleResize, limit))
-	http.ListenAndServe("0.0.0.0:3300", nil)
+	err := http.ListenAndServe("0.0.0.0:3300", nil)
+	if err != nil {
+		panic(err)
+	}
 }
 
 type ImageParams struct {
