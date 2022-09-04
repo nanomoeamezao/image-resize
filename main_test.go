@@ -11,11 +11,15 @@ import (
 	"sync"
 	"testing"
 
+	"test/test/download"
+	"test/test/request"
+	"test/test/resizer"
+
 	"github.com/stretchr/testify/require"
 )
 
 func TestGetImage(t *testing.T) {
-	img, err := downloadImage("https://www.thearmorylife.com/wp-content/uploads/2021/03/article-springfield-xd-4-service-model-9mm-review-1.jpg")
+	img, err := download.DownloadImage("https://www.thearmorylife.com/wp-content/uploads/2021/03/article-springfield-xd-4-service-model-9mm-review-1.jpg")
 	imgBuff := bytes.NewBuffer(img)
 	require.NoError(t, err)
 	_, _, err = image.Decode(imgBuff)
@@ -29,7 +33,7 @@ func TestResize(t *testing.T) {
 	var intImgBuff bytes.Buffer
 	io.Copy(&intImgBuff, img)
 
-	resized, _, err := resizeImage(intImgBuff.Bytes(), 100, 100)
+	resized, _, err := resizer.ResizeImage(intImgBuff.Bytes(), 100, 100)
 	require.NoError(t, err)
 
 	imgBuff := bytes.NewBuffer(resized)
@@ -43,7 +47,7 @@ func TestResize(t *testing.T) {
 
 func TestServer(t *testing.T) {
 	limit := 2
-	http.HandleFunc("/resize", limitMaxRequests(handleResize, limit))
+	http.HandleFunc("/resize", request.LimitMaxRequests(handleResize, limit))
 	srv := http.Server{Addr: "0.0.0.0:3300"}
 	go srv.ListenAndServe()
 	responses := make(chan int)
